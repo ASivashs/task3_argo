@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-redis
+  labels:
+    {{ include "helm-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.redis.replicas }}
+  selector:
+    matchLabels: 
+      app: {{ .Release.Name }}-redis
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-redis
+    spec:
+      containers:
+      - name: {{ .Release.Name }}-redis
+        image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+        imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+        ports:
+        - containerPort: {{ .Values.redis.service.ports.port }}
+        env:
+        - name: REDIS_HOST
+          value: "{{ .Release.Name }}-redis"
+        - name: REDIS_PORT
+          value: "{{ .Values.env.REDIS_PORT }}"
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 20
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 20
+          failureThreshold: 5
+        volumeMounts:
+          {{ toYaml .Values.redis.volumeMounts | nindent 10 }}
+      volumes:
+      - name: {{ .Values.redis.volumes.name }}
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-redis-pvc

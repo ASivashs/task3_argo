@@ -1,0 +1,100 @@
+ingress:
+  frontend:
+    host: app.local
+
+env:
+  MYSQL_USER: user
+  MYSQL_DATABASE: app_db
+  MYSQL_PORT: '3306'
+  REDIS_PORT: '6379'
+
+backend:
+  replicas: 2
+  image:
+    repository: antoni0832/backend-app
+    tag: 1.2.18
+    pullPolicy: Always
+  resources:
+    requests:
+      memory: 250Mi
+      cpu: 200m
+    limits:
+      memory: 400Mi
+      cpu: 500m
+  service:
+    type: ClusterIP
+    ports:
+      name: flask
+      port: 5000
+      targetPort: 5000
+      protocol: TCP
+
+frontend:
+  replicas: 2
+  image:
+    repository: antoni0832/frontend-app
+    tag: 1.2.3
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      memory: 100Mi
+      cpu: 100m
+    limits:
+      memory: 200Mi
+      cpu: 200m
+  service:
+    type: ClusterIP
+    ports:
+      name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+mysql:
+  image:
+    repository: mysql
+    tag: 8.4.6
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    ports:
+      name: mysql-db
+      port: 3306
+      targetPort: 3306
+      protocol: TCP
+  volumeMounts:
+    - name: mysql-db
+      mountPath: /var/lib/mysql
+  volumes:
+    name: mysql-db
+  pvc:
+    storageClassName: standard
+    storage: 4Gi
+  primary:
+    persistence:
+      size: 8Gi
+  readReplicas:
+    replicaCount: 1
+
+redis:
+  image:
+    repository: redis
+    tag: 8.2.2-alpine
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+    ports:
+      name: redis-db
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+  volumeMounts:
+    - name: redis-db
+      mountPath: /data
+  volumes:
+    name: redis-db
+  pvc:
+    storageClassName: standard
+    storage: 2Gi
+  replica:
+    replicaCount: 1
